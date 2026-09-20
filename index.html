@@ -590,16 +590,15 @@ body.report .tabbar{display:none!important}
 @media(max-width:430px){.bar-brand{display:none}.bar select.who{max-width:42vw}}
 
 
-/* ---------- Personal cloud sign-in ---------- */
-.auth-bg{position:fixed;inset:0;z-index:500;background:rgba(10,12,34,.66);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;padding:18px}
+.auth-bg{position:fixed;inset:0;z-index:500;background:rgba(10,12,34,.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:18px}
 .auth-bg[hidden]{display:none!important}
-.auth-card{width:min(430px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-.auth-card h2{font-size:24px}
-.auth-card p{margin-top:8px;color:var(--ink-2);line-height:1.5}
-.auth-form{display:grid;gap:12px;margin-top:18px}
-.auth-actions{display:flex;gap:8px;align-items:center;margin-top:4px}
-.auth-status{font-size:13px;color:var(--bad);min-height:18px}
-.auth-note{font-size:12px!important;color:var(--ink-3)!important}
+.auth-card{width:min(520px,100%);background:var(--bg);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 18px 70px rgba(0,0,0,.38)}
+.auth-top{display:flex;align-items:flex-start;gap:16px}.auth-top>div{flex:1}
+.auth-top h2{font-size:23px}.auth-top p{margin-top:6px;color:var(--ink-2);font-size:14px;line-height:1.45}
+.auth-form{display:grid;gap:13px;margin-top:18px}.auth-status{min-height:20px;color:var(--bad);font-size:13.5px}
+.auth-actions{display:flex;align-items:center;gap:8px}.auth-actions .sp{flex:1}
+.auth-note{font-size:12.5px;color:var(--ink-3);line-height:1.45}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -609,7 +608,7 @@ body.report .tabbar{display:none!important}
 <aside class="rail">
   <div class="brand"><span id="brandmark"></span><div><b>Trade Insight</b><small>An analytical journal for traders</small></div></div>
   <nav class="nav" id="nav" aria-label="Sections"></nav>
-  <div class="foot"><b>Your journal stays yours.</b> It is saved on this device and, when configured, synced privately to your cloud database. Analysis of your own record, not investment advice.</div>
+  <div class="foot"><b>Your journal stays yours.</b> It is saved on this device, and in your private cloud when connected. Analysis of your own record, not investment advice.</div>
 </aside>
 <main>
   <header class="bar">
@@ -629,21 +628,31 @@ body.report .tabbar{display:none!important}
 <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
 <div class="sheet-bg" id="sheetbg" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-t"><div class="sheet-h"><b id="sheet-t"></b><button class="btn sm ghost" data-act="closesheet">Close</button></div><div class="sheet-b" id="sheet-b"></div><div class="sheet-f" id="sheet-f" hidden><button class="btn danger" data-act="deltrade" id="delbtn">Delete</button><span class="sp"></span><button class="btn" data-act="closesheet">Cancel</button><button class="btn primary" data-act="savetrade">Save trade</button></div></div></div>
 <button class="btn" id="exitreport" data-go="overview">Back to the dashboard</button>
+<div class="toast" id="toast" role="status"></div><div id="tip" role="tooltip"></div>
+<input type="file" id="fileimp" hidden accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt,.json">
+
 <div class="auth-bg" id="authbg" hidden>
   <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
-    <h2 id="auth-title">Connect your journal</h2>
-    <p>Sign in to your private cloud storage. This is one personal login for your journal — there is no user-management system inside the app.</p>
+    <div class="auth-top">
+      <div>
+        <h2 id="auth-title">Connect your journal</h2>
+        <p>Sign in to your private cloud storage. This is one personal login for your journal.</p>
+      </div>
+      <button class="btn sm ghost" type="button" id="authclose" aria-label="Close">Close</button>
+    </div>
     <form class="auth-form" id="authform">
       <div class="field"><label for="authemail">Email</label><input type="email" id="authemail" autocomplete="username" required></div>
       <div class="field"><label for="authpass">Password</label><input type="password" id="authpass" autocomplete="current-password" required></div>
       <div class="auth-status" id="authstatus" role="status"></div>
-      <div class="auth-actions"><button class="btn primary" type="submit" id="authsubmit">Sign in & sync</button><span class="sp"></span><button class="btn" type="button" id="authlocal">Use this device only</button></div>
-      <p class="auth-note">Your existing local journal remains on this device. If this is your first device, sign in after creating your single Supabase user.</p>
+      <div class="auth-actions">
+        <button class="btn primary" type="submit" id="authsubmit">Sign in & sync</button>
+        <span class="sp"></span>
+        <button class="btn" type="button" id="authlocal">Use this device only</button>
+      </div>
+      <p class="auth-note">Your existing local journal remains on this device. On your first device, sign in here to upload it to your private cloud.</p>
     </form>
   </div>
 </div>
-<div class="toast" id="toast" role="status"></div><div id="tip" role="tooltip"></div>
-<input type="file" id="fileimp" hidden accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt,.json">
 <script>
 /* fictional sample trades (generated) and the three trades from the uploaded journal */
 const TKEYS=["d", "tm", "inst", "cat", "setup", "tf", "dir", "grade", "cap", "qty", "entry", "sl", "tgt", "exit", "chg", "emo", "brk", "xt", "note", "ovr", "exp", "mae", "mfe", "reg", "evt"];
@@ -653,7 +662,7 @@ const RULES_SRC=[["Primary Strategy", "HTF Direction -> Liquidity -> CHOCH -> BO
 
 /* ==========================================================================
    TRADE INSIGHT: an analytical journal for Indian retail traders
-   Single file. Data stays on this device (and syncs to your Claude account when that is available).
+   Single file. Data stays on this device (and syncs to your private cloud when that is available).
    ========================================================================== */
 'use strict';
 
@@ -1628,7 +1637,7 @@ function pgCoach(A) {
 function pgData(A) {
   const S = J.set, fld = ([k, lab, ty, note]) => { const v = S[k], dsp = ty === 'p' ? +(v * 100).toFixed(3) : v; return `<div class="field"><label for="st-${k}">${lab}${ty === 'p' ? ' (%)' : ''}</label><input type="text" inputmode="decimal" id="st-${k}" data-set="${k}" data-ty="${ty}" value="${dsp}"><small class="muted">${note}</small></div>`; };
   const jr = E.list.map(x => `<option value="${x.id}"${x.id === J.id ? ' selected' : ''}>${esc(x.name)}${x.demo && !/sample/i.test(x.name) ? ' (sample)' : ''}</option>`).join('');
-  return ph('Your data', 'Your journals, limits, imports and exports. Everything stays on this device' + (SYNC.mode === 'cloud' ? ' and in your Claude account' : '') + '.')
+  return ph('Your data', 'Your journals, limits, imports and exports. Everything stays on this device' + (SYNC.mode === 'cloud' ? ' and in your private cloud' : '') + '.')
     + blk('Storage', null, `<div class="callout ${SYNC.mode === 'cloud' ? 'good' : ''}"><span class="ic">${SYNC.mode === 'cloud' ? '✓' : 'i'}</span><div id="syncmsg">${syncMessage()}</div></div>`)
     + blk('Journals', 'Keep your real journal apart from experiments. The sample journal is fictional.', `<div class="row"><select class="sel who" id="jsel" aria-label="Journal">${jr}</select><button class="btn sm" data-act="newj">New journal</button><button class="btn sm" data-act="sample">Add the sample journal</button></div><div class="fgrid" style="margin-top:14px"><div class="field"><label for="jname">Name of this journal</label><input type="text" id="jname" value="${esc(J.name)}"></div></div>${J.demo ? `<p class="note" style="margin-top:10px">This is the sample journal. Its "today" is fixed at ${fmtDY(J.asOf)} so the limits panels have something to show.</p>` : ''}`)
     + blk('Capital, risk and limits', 'Every percentage limit is measured against your trading capital. These are your constitution numbers; change them if your rules change.', `<div class="fgrid">${SETKEYS.map(fld).join('')}</div>`)
@@ -1639,11 +1648,12 @@ function pgData(A) {
     + `<div class="blk"><h2>Danger zone</h2><div class="row" style="margin-top:12px"><button class="btn danger" data-act="delj">Delete this journal</button></div></div>`;
 }
 function syncMessage() {
-  if (SYNC.mode === 'cloud') return `<b>Saved here and synced to your private cloud.</b> ${SYNC.last ? 'Last synced ' + new Date(SYNC.last).toLocaleString('en-IN') + '. ' : ''}Open the journal on another device, sign in with the same personal login, and your data will be restored.`;
+  if (SYNC.mode === 'cloud') return `<b>Saved on this device and synced to your private cloud.</b> ${SYNC.last ? 'Last synced ' + new Date(SYNC.last).toLocaleString('en-IN') + '. ' : ''}Open the journal on your phone or laptop and it stays in step.`;
   if (SYNC.mode === 'signin') return `<b>Cloud sync is ready, but this device is not signed in.</b> Sign in once to restore and sync your journal across devices.`;
-  if (SYNC.mode === 'config') return `<b>Cloud storage is not configured yet.</b> Add your Supabase URL and publishable key in the setup block of this file.`;
-  if (SYNC.mode === 'local') return `<b>Saved on this device only.</b> Cloud sync is currently unavailable or disabled. Your local data is still safe here.`;
-  return '<b>Checking storage…</b>';
+  if (SYNC.mode === 'config') return `<b>Cloud storage is not configured.</b> Check the Supabase settings in this file.`;
+  if (SYNC.mode === 'error') return `<b>Cloud sync hit an error.</b> Your journal is still saved on this device.`;
+  if (SYNC.mode === 'local') return `<b>Saved on this device only.</b> This browser keeps your journal; clearing site data would erase it. Export a backup now and then (below).`;
+  return '<b>Checking cloud storage…</b>';
 }
 
 /* ---------- 20. State and storage ---------- */
@@ -1670,124 +1680,213 @@ function persistNow() { store(LSK, E.list); store(LSL, E.cur); store(LSD, E.dele
 function setCurrent(id) { const j = E.list.find(x => x.id === id); if (!j) return; E.cur = id; J = j; UI.lab = null; UI.roseSel = null; UI.calY = null; UI.calM = null; UI.dayOpen = null; UI.jshown = 40; recompute(); persist(); }
 function touch() { J.updated = Date.now(); }
 
-/* ---------- 21. Personal cloud sync (Supabase) ---------- */
-/*
-  SETUP: replace these two placeholders with the values from your Supabase project.
-  Use the browser-safe publishable/anon key only. NEVER put a service_role/secret key here.
-*/
+/* ---------- 21. Cloud sync (Supabase; local storage stays the primary copy) ---------- */
 const SUPABASE_URL = 'https://gdecjijdudotkfikfona.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_xBuw3PmoTgq-gNz3_YY7Kg_1p_adtBI';
-const CLOUD_CONFIGURED = /^https:\/\/[^\s]+\.supabase\.co$/.test(SUPABASE_URL) && !SUPABASE_PUBLISHABLE_KEY.includes('PASTE_YOUR_');
-const sb = CLOUD_CONFIGURED && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-}) : null;
-const Cloud = { chain: Promise.resolve(), timer: null, lastPull: 0, off: false, userId: null, warned: false };
+const CLOUD_CONFIGURED = /^https:\/\/[^\s]+\.supabase\.co$/.test(SUPABASE_URL)
+  && !!SUPABASE_PUBLISHABLE_KEY
+  && !SUPABASE_PUBLISHABLE_KEY.includes('PASTE_YOUR_');
+const sb = CLOUD_CONFIGURED && window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    })
+  : null;
 
-function localPayload() {
-  return { v: 2, list: E.list, cur: E.cur, deleted: E.deleted || [], ui: { period: UI.period, theme: UI.theme }, updated_at: Date.now() };
+const Cloud = {
+  userId: null,
+  chain: Promise.resolve(),
+  timer: null,
+  off: false,
+  busy: false,
+  lastPull: 0,
+  warned: false
+};
+
+function latestLocalUpdated() {
+  return E.list.filter(j => !j.demo).reduce((m, j) => Math.max(m, Number(j.updated) || 0), 0);
 }
-function localStateTime() {
-  const js = (E.list || []).map(j => Number(j && j.updated) || 0);
-  return Math.max(Number(load('tji_cloud_local_updated_v1', 0)) || 0, ...js);
+function cloudPayload() {
+  return {
+    v: 1,
+    updated_at: Date.now(),
+    journals: E.list.filter(j => !j.demo),
+    cur: J && !J.demo ? J.id : (E.list.find(j => !j.demo) || {}).id || null,
+    deleted: E.deleted || [],
+    ui: { period: UI.period, theme: UI.theme }
+  };
 }
-function markLocalCloudTime(ts = Date.now()) { store('tji_cloud_local_updated_v1', ts); }
-function showAuth(show = true) { const a = $('#authbg'); if (a) a.hidden = !show; }
-function setAuthStatus(msg = '') { const el = $('#authstatus'); if (el) el.textContent = msg; }
-function cloudFail(e, notify = true) {
-  SYNC.mode = 'local'; SYNC.err = (e && (e.message || e.code)) || 'unavailable'; Cloud.off = true; refreshSync();
-  if (notify && !Cloud.warned) { Cloud.warned = true; toast('Cloud sync paused. Your journal is still saved on this device.'); }
+function refreshSync() {
+  const m = $('#syncmsg'); if (m) m.innerHTML = syncMessage();
+  const p = $('#pSync');
+  if (p) {
+    p.textContent = SYNC.mode === 'cloud' ? 'Synced' : SYNC.mode === 'signin' ? 'Sign in' : SYNC.mode === 'local' ? 'This device' : '…';
+    p.className = 'pill sync ' + (SYNC.mode === 'cloud' ? 'ok' : '');
+    p.title = SYNC.mode === 'cloud'
+      ? 'Saved here and in your private cloud'
+      : SYNC.mode === 'signin' ? 'Click to sign in and sync'
+      : 'Saved in this browser only';
+  }
 }
-function cloudConfigured() { return !!sb; }
-function applyCloudPayload(payload) {
-  if (!payload || !Array.isArray(payload.list)) return false;
-  E.list = payload.list.filter(j => j && Array.isArray(j.trades)).map(fillJ);
-  E.deleted = Array.isArray(payload.deleted) ? payload.deleted : [];
-  E.cur = payload.cur;
-  if (!E.list.length) E.list = [mainJournal(), sampleJournal()];
-  if (!E.list.some(x => x.id === E.cur)) E.cur = E.list[0].id;
-  J = E.list.find(x => x.id === E.cur);
-  const ui = payload.ui || {};
-  UI.period = ui.period || { mode: 'all' }; UI.theme = ui.theme || 'auto';
-  recompute();
-  store(LSK, E.list); store(LSL, E.cur); store(LSD, E.deleted); store(LSU, { period: UI.period, theme: UI.theme });
-  markLocalCloudTime(Number(payload.updated_at) || Date.now());
-  if (typeof renderBar === 'function') { renderBar(); rePaint(); }
-  return true;
+function setAuthStatus(msg, good=false) {
+  const el = $('#authstatus'); if (!el) return;
+  el.textContent = msg || '';
+  el.style.color = good ? 'var(--good)' : 'var(--bad)';
+}
+function showAuth(on=true) {
+  const bg = $('#authbg'); if (!bg) return;
+  bg.hidden = !on;
+  if (on) { setAuthStatus(''); setTimeout(() => $('#authemail')?.focus(), 0); }
+}
+function cloudFail(e) {
+  Cloud.off = true;
+  SYNC.mode = 'error';
+  SYNC.err = (e && (e.message || e.code)) || 'unavailable';
+  refreshSync();
+  if (!Cloud.warned) {
+    Cloud.warned = true;
+    toast('Cloud sync paused. Your journal is still saved on this device.');
+  }
+}
+async function cloudPush() {
+  if (!sb || !Cloud.userId || Cloud.off || Cloud.busy) return false;
+  Cloud.busy = true;
+  try {
+    const payload = cloudPayload();
+    const { error } = await sb.from('journal_state').upsert({
+      user_id: Cloud.userId,
+      payload,
+      updated_at: new Date(payload.updated_at).toISOString()
+    }, { onConflict: 'user_id' });
+    if (error) throw error;
+    SYNC.mode = 'cloud'; SYNC.last = Date.now(); refreshSync();
+    return true;
+  } finally {
+    Cloud.busy = false;
+  }
+}
+function cloudSchedule() {
+  if (!sb || !Cloud.userId || Cloud.off) return;
+  clearTimeout(Cloud.timer);
+  Cloud.timer = setTimeout(() => {
+    Cloud.chain = Cloud.chain.then(() => cloudPush()).catch(cloudFail);
+  }, 1000);
+}
+async function cloudPull(initial=false) {
+  if (!sb || !Cloud.userId || Cloud.off) return;
+  Cloud.lastPull = Date.now();
+  const { data, error } = await sb.from('journal_state')
+    .select('payload,updated_at')
+    .eq('user_id', Cloud.userId)
+    .maybeSingle();
+  if (error) throw error;
+
+  if (!data || !data.payload) {
+    // First cloud connection: preserve this device's current local journal and upload it.
+    await cloudPush();
+    return;
+  }
+
+  const payload = data.payload;
+  const cloudUpdated = Number(payload.updated_at || new Date(data.updated_at || 0).getTime()) || 0;
+  const localUpdated = latestLocalUpdated();
+
+  if (cloudUpdated > localUpdated || (initial && localUpdated === 0)) {
+    const journals = Array.isArray(payload.journals) ? payload.journals.map(fillJ) : [];
+    const samples = E.list.filter(j => j.demo);
+    E.list = [...journals, ...samples];
+    if (!E.list.length) E.list = [mainJournal(), sampleJournal()];
+    E.deleted = Array.isArray(payload.deleted) ? payload.deleted : [];
+    const requested = payload.cur;
+    E.cur = E.list.some(j => j.id === requested) ? requested : (E.list.find(j => !j.demo) || E.list[0]).id;
+    J = E.list.find(j => j.id === E.cur);
+    if (payload.ui) {
+      UI.period = payload.ui.period || UI.period;
+      UI.theme = payload.ui.theme || UI.theme;
+      applyTheme(UI.theme || 'auto');
+    }
+    store(LSK, E.list); store(LSL, E.cur); store(LSD, E.deleted); store(LSU, {period:UI.period,theme:UI.theme});
+    recompute();
+    if (typeof renderBar === 'function') { renderBar(); rePaint(); }
+    SYNC.last = Date.now(); refreshSync();
+    if (!initial) toast('Updated from your private cloud');
+  } else if (localUpdated > cloudUpdated) {
+    await cloudPush();
+  } else {
+    SYNC.last = Date.now(); refreshSync();
+  }
 }
 async function cloudSignIn(email, password) {
   if (!sb) throw new Error('Cloud is not configured.');
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  Cloud.userId = data.user.id; Cloud.off = false; Cloud.warned = false;
-  showAuth(false); setAuthStatus('');
+  Cloud.userId = data.user.id;
+  Cloud.off = false; Cloud.warned = false;
+  showAuth(false);
   await cloudPull(true);
-  SYNC.mode = 'cloud'; refreshSync();
+  SYNC.mode = 'cloud'; SYNC.last = Date.now(); refreshSync();
 }
 async function cloudInit() {
-  if (!CLOUD_CONFIGURED || !sb) { SYNC.mode = 'config'; refreshSync(); return; }
+  if (!CLOUD_CONFIGURED || !sb) {
+    SYNC.mode = 'config'; refreshSync(); return;
+  }
   try {
     const { data, error } = await sb.auth.getSession();
     if (error) throw error;
-    if (!data.session) { SYNC.mode = 'signin'; refreshSync(); showAuth(true); return; }
-    Cloud.userId = data.session.user.id; Cloud.off = false;
+    if (!data.session) {
+      SYNC.mode = 'signin'; refreshSync(); showAuth(true); return;
+    }
+    Cloud.userId = data.session.user.id;
+    Cloud.off = false; Cloud.warned = false;
     await cloudPull(true);
     SYNC.mode = 'cloud'; SYNC.last = Date.now(); refreshSync();
+
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        Cloud.userId = null; SYNC.mode = 'signin'; refreshSync();
+      } else if (session.user) {
+        Cloud.userId = session.user.id;
+        SYNC.mode = 'cloud'; refreshSync();
+      }
+    });
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && Date.now() - Cloud.lastPull > 60000 && !Cloud.off) Cloud.chain = Cloud.chain.then(() => cloudPull(false)).catch(e => cloudFail(e));
+      if (document.visibilityState === 'visible' && Cloud.userId && Date.now() - Cloud.lastPull > 60000) {
+        Cloud.chain = Cloud.chain.then(() => cloudPull(false)).catch(cloudFail);
+      }
     });
-    sb.auth.onAuthStateChange((_event, session) => {
-      if (session) { Cloud.userId = session.user.id; Cloud.off = false; }
-      else { Cloud.userId = null; SYNC.mode = 'signin'; refreshSync(); showAuth(true); }
-    });
-  } catch (e) { cloudFail(e, false); }
-}
-async function cloudPull(isStartup = false) {
-  if (!sb || !Cloud.userId || Cloud.off) return;
-  Cloud.lastPull = Date.now();
-  const { data, error } = await sb.from('journal_state').select('payload,updated_at').eq('user_id', Cloud.userId).maybeSingle();
-  if (error) throw error;
-  if (!data) {
-    // First cloud sync: preserve the journal already on this device instead of overwriting it with an empty cloud row.
-    await cloudPush(true);
-    return;
+  } catch (e) {
+    cloudFail(e);
   }
-  const cloudTs = new Date(data.updated_at).getTime() || 0;
-  const localTs = localStateTime();
-  if (cloudTs >= localTs) {
-    applyCloudPayload(data.payload);
-    SYNC.last = cloudTs || Date.now();
-    if (typeof toast === 'function') toast('Journal restored from your cloud');
-  } else {
-    await cloudPush(true);
-  }
-  refreshSync();
-}
-function cloudSchedule() {
-  if (!sb || !Cloud.userId || Cloud.off || SYNC.mode !== 'cloud') return;
-  clearTimeout(Cloud.timer);
-  Cloud.timer = setTimeout(() => { Cloud.chain = Cloud.chain.then(() => cloudPush(false)).catch(e => cloudFail(e)); }, 1200);
-}
-async function cloudPush(force = false) {
-  if (!sb || !Cloud.userId || Cloud.off) return;
-  const payload = localPayload();
-  const { error } = await sb.from('journal_state').upsert({ user_id: Cloud.userId, payload, updated_at: new Date(payload.updated_at).toISOString() }, { onConflict: 'user_id' });
-  if (error) throw error;
-  markLocalCloudTime(payload.updated_at); SYNC.mode = 'cloud'; SYNC.last = payload.updated_at; refreshSync();
 }
 
-/* One personal account: sign-in is only used to identify your private cloud data across devices. */
-document.addEventListener('submit', async e => {
-  if (e.target.id !== 'authform') return;
-  e.preventDefault();
-  const email = $('#authemail').value.trim(), password = $('#authpass').value;
-  const b = $('#authsubmit'); b.disabled = true; setAuthStatus('Connecting…');
-  try { await cloudSignIn(email, password); toast('Cloud sync connected'); }
-  catch (err) { setAuthStatus(err && err.message ? err.message : 'Could not sign in. Check your email and password.'); }
-  finally { b.disabled = false; }
-});
-
-document.addEventListener('click', e => {
-  if (e.target.id === 'authlocal') { showAuth(false); SYNC.mode = 'local'; refreshSync(); toast('Using this device only'); }
+document.addEventListener('DOMContentLoaded', () => {
+  const form = $('#authform');
+  if (form) form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('#authemail').value.trim(), pass = $('#authpass').value;
+    if (!email || !pass) return;
+    $('#authsubmit').disabled = true;
+    setAuthStatus('Signing in…', true);
+    try {
+      await cloudSignIn(email, pass);
+      $('#authpass').value = '';
+      toast('Journal connected and synced.');
+    } catch (err) {
+      setAuthStatus(err?.message || 'Sign-in failed.');
+    } finally {
+      $('#authsubmit').disabled = false;
+    }
+  });
+  $('#authclose')?.addEventListener('click', () => {
+    showAuth(false);
+    SYNC.mode = 'local'; refreshSync();
+  });
+  $('#authlocal')?.addEventListener('click', () => {
+    showAuth(false);
+    SYNC.mode = 'local'; refreshSync();
+  });
+  $('#pSync')?.addEventListener('click', () => {
+    if (SYNC.mode === 'signin') showAuth(true);
+  });
 });
 
 /* ---------- 22. Import ---------- */
